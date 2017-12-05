@@ -5,12 +5,6 @@
 - os OSX 10.11.6
 - golang version 1.9.2
 
-more use in https://github.com/mkideal/cli
-```
-    Username  string `cli:"u,username" usage:"github account" prompt:"type github account"`
-	Password  string `pw:"password" usage:"password of github account" prompt:"type the password"`
-```
-
 # build
 
 ```sh
