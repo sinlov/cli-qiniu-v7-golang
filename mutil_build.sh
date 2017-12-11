@@ -8,11 +8,19 @@ VERSION_MINOR=0
 VERSION_PATCH=0
 VERSION_BUILD=0
 
+build_file="main.go"
+bit_support=(amd64)
+#bit_support=(amd64 386)
+#build_platform=(darwin)
+build_platform=(darwin linux windows)
+#build_platform[0]=plugintemp
+
 VersionCode=$[$[VERSION_MAJOR * 100000000] + $[VERSION_MINOR * 100000] + $[VERSION_PATCH * 100] + $[VERSION_BUILD]]
 VersionName="${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}.${VERSION_BUILD}"
-packageReName="${ReNameCode}_${VersionName}"
+RepoFileName="${ReNameCode}_${VersionName}"
 
 shell_running_path=$(cd `dirname $0`; pwd)
+work_path=$0
 
 checkFuncBack(){
   if [ $? -eq 0 ]; then
@@ -39,88 +47,48 @@ if [ -d "${buildPath}" ]; then
     sleep 1
 fi
 
-checkEnv tar
-
-echo -e "============\nPrint build info start"
+echo -e "============\n\033[;34mPrint build info start\033[0m"
 go version
 which go
 echo -e "Your settings is
 \tVersion Name -> ${ReNameCode}
 \tVersion code -> ${VersionCode}
 \tVersion name -> ${VersionName}
-\tPackage rename -> ${packageReName}
-\tOut Path -> ${shell_running_path}/${buildPath}
+\tPackage rename -> ${RepoFileName}
+\tBuild Path -> ${work_path}/${buildPath}
 "
-echo -e "Print build info end\n============"
+echo -e "\033[;34mPrint build info end\033[0m\n============"
 
 mkdir -p ${buildPath}
-echo "start build OSX 64"
-CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build main.go
-mv main "${buildPath}/${packageReName}_osx_64"
-echo "build OSX 64 finish"
 
-echo "start build OSX 32"
-CGO_ENABLED=0 GOOS=darwin GOARCH=386 go build main.go
-mv main "${buildPath}/${packageReName}_osx_86"
-echo "build OSX 32 finish"
+for platform in ${build_platform[@]};
+do
+    for bit in ${bit_support[@]};
+    do
+      echo "start build platform: ${platform}-${bit}"
+      CGO_ENABLED=0 GOOS=${platform} GOARCH=${bit} go build -o "main" ${build_file}
+      if [ "windows" == "${platform}" ]; then
+        mv "main" "${buildPath}/${RepoFileName}_${platform}_${bit}.exe"
+      else
+        mv "main" "${buildPath}/${RepoFileName}_${platform}_${bit}"
+      fi
+      echo "build OSX 64 finish"
+      done
+    done
 
-echo "start build Linux 64"
-CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build main.go
-mv main "${buildPath}/${packageReName}_linux_64"
-echo "build linux 64 finish"
-
-echo "start build Linux 32"
-CGO_ENABLED=0 GOOS=linux GOARCH=386 go build main.go
-mv main "${buildPath}/${packageReName}_linux_86"
-echo "build linux 32 finish"
-
-echo "start build windows 64"
-CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build main.go
-mv main.exe "${buildPath}/${packageReName}_win_64.exe"
-echo "build windows 64 finish"
-
-echo "start build windows 32"
-CGO_ENABLED=0 GOOS=windows GOARCH=386 go build main.go
-mv main.exe "${buildPath}/${packageReName}_win_86.exe"
-echo "build windows 32 finish"
-
-read -p "Do you want repo:(nothing is not need)? " word
-if [ -n "$word" ] ;then
-    out_folder=${VERSION_MAJOR}-${VERSION_MINOR}-${VERSION_PATCH}
-    out_tar_name="${ReNameCode}-${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}.tag.gz"
-    out_folder_path="${repoPath}/${ReNameCode}/${out_folder}/"
-    out_tar_path="${repoPath}/${ReNameCode}/${out_tar_name}"
-    mkdir -p "${out_folder_path}"
-    cp -r "${buildPath}/" "${out_folder_path}"
-    echo -e "Repo config
+want_repo="n"
+read -p "Do you want repo:(y/or nothing is not need)? " want_repo
+if [ "y" == "${want_repo}" ]; then
+  out_folder=${VERSION_MAJOR}-${VERSION_MINOR}-${VERSION_PATCH}
+  out_tar_name="${ReNameCode}-${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}.tag.gz"
+  out_folder_path="${repoPath}/${ReNameCode}/${out_folder}/"
+  out_tar_path="${repoPath}/${ReNameCode}/${out_tar_name}"
+  mkdir -p "${out_folder_path}"
+  cp -r "${buildPath}/" "${out_folder_path}"
+  echo -e "Repo config
 \tRepo path: ${out_folder_path}
 \tRepo out_tar_path: ${out_tar_path}
 "
-    cat > "${out_folder_path}Watch.bat" << EOF
-@echo off
-@echo. ==== start watch info ====
-${packageReName}_win_86.exe -s "%~nx1"
-pause
-EOF
-    cat > "${out_folder_path}Watch_64.bat" << EOF
-@echo off
-@echo. ==== start watch info ====
-${packageReName}_win_64.exe -s "%~nx1"
-pause
-EOF
-    cat > "${out_folder_path}MD5.bat" << EOF
-@echo off
-@echo. ==== start watch info ====
-${packageReName}_win_86.exe -m "%~nx1"
-pause
-EOF
-    cat > "${out_folder_path}MD5_64.bat" << EOF
-@echo off
-@echo. ==== start watch info ====
-${packageReName}_win_64.exe -m "%~nx1"
-pause
-EOF
-
 cd ${repoPath}
 tar zcvf "${ReNameCode}/${out_tar_name}" "${ReNameCode}/${out_folder}"
 cd ${shell_running_path}
@@ -128,6 +96,6 @@ rm -rf ${out_folder_path}
 sleep 1
 
 echo -e "=>Out repo tar \033[;36m-> ${out_tar_path}\033[0m"
+else
+  echo -e "=>\033[;36mBuild success -> ${work_path}/${buildPath}\033[0m"
 fi
-
-echo -e "============\nAll the build is finish! at Build Path\n${shell_running_path}/${buildPath}"
