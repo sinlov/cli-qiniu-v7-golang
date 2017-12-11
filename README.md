@@ -14,12 +14,26 @@
 
 # use
 
+add you qiniu key at `main.go`
+
+```golang
+	// set your qiniu set
+	downloadURLHead string = "http://xx.clouddn.com/"
+	// set accessKey
+	accessKeyDefault string = ""
+	// set secretKey
+	secretKeyDefault string = ""
+	// set your want use bucket
+	bucketDefault string = ""
+```
+
 ```
 go build main main.go
 ./main -h
 ./main -l [file for upload]
 ```
 
+or use by main -h
 
 ###License
 
